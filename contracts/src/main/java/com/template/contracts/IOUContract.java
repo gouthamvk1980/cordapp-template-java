@@ -15,7 +15,7 @@ import static net.corda.core.contracts.ContractsDSL.requireSingleCommand;
 
 
 public class IOUContract implements Contract {
-    public static final String ID = "com.template.IOUContract";
+    public static final String ID = "com.template.contracts.IOUContract";
 
     // Our Create command.
     public static class Create implements CommandData {
