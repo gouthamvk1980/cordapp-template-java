@@ -1,0 +1,5 @@
+start ProductCreateFlow otherParty: "O=PartyB,L=New York,C=US", productName: "Gadgets", productColor: "Green", status: "Pending"
+
+start ProductUpdateFlow linearId: 7ffe5d6f-5ebb-4670-ba24-ce5e55018353, from: "O=PartyB,L=New York,C=US", otherParty: "O=PartyA,L=London,C=GB", status: "Received"
+
+run vaultQuery contractStateType: com.template.states.ProductState
