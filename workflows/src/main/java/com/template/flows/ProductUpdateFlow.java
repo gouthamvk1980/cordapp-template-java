@@ -1,5 +1,6 @@
 package com.template.flows;
 
+import net.corda.core.contracts.UniqueIdentifier;
 import co.paralleluniverse.fibers.Suspendable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -8,7 +9,6 @@ import com.template.states.ProductState;
 import net.corda.core.contracts.Command;
 import net.corda.core.contracts.ContractState;
 import net.corda.core.contracts.StateAndRef;
-import net.corda.core.contracts.UniqueIdentifier;
 import net.corda.core.crypto.SecureHash;
 import net.corda.core.flows.*;
 import net.corda.core.identity.Party;
@@ -19,6 +19,7 @@ import net.corda.core.utilities.ProgressTracker.Step;
 import net.corda.core.node.services.Vault;
 import net.corda.core.node.services.vault.QueryCriteria;
 import java.util.List;
+import java.util.UUID;
 
 import static net.corda.core.contracts.ContractsDSL.requireThat;
 
@@ -47,8 +48,17 @@ public class ProductUpdateFlow {
 
         private final ProgressTracker progressTracker = new ProgressTracker(GET_PRODUCT_FROM_VAULT, CHECK_INITIATOR, BUILD_TRANSACTION, SIGN_TRANSACTION, FINALISE);
 
-        public Initiator(UniqueIdentifier linearId, Party from, Party otherParty, String status) {
-            this.linearId = linearId;
+        public Initiator(String inputExternalId, Party from, Party otherParty, String status) {
+            this.linearId = UniqueIdentifier.Companion.fromString(inputExternalId);
+            System.out.println("##############################################");
+            System.out.println("##############################################");
+            System.out.println("##############################################");
+            System.out.println("##############################################");
+            System.out.println("linearId: "+linearId);
+            System.out.println("##############################################");
+            System.out.println("##############################################");
+            System.out.println("##############################################");
+            System.out.println("##############################################");
             this.otherParty = otherParty;
             this.status = status;
             this.from = from;
@@ -82,14 +92,12 @@ public class ProductUpdateFlow {
             // Stage 6. Sign the transaction using the key we originally used.
             progressTracker.setCurrentStep(SIGN_TRANSACTION);
             final SignedTransaction partSignedTx = getServiceHub().signInitialTransaction(txBuilder, newInputProduct.getFrom().getOwningKey());
-
             // Stage 4.
 //            progressTracker.setCurrentStep(COLLECT_SIGNS);
             // Send the state to the counterparty, and receive it back with their signature.
             FlowSession otherPartySession = initiateFlow(otherParty);
             final SignedTransaction fullySignedTx = subFlow(
                     new CollectSignaturesFlow(partSignedTx, ImmutableSet.of(otherPartySession), CollectSignaturesFlow.Companion.tracker()));
-
            // Stage 10. Notarise and record the transaction in our vaults.
             progressTracker.setCurrentStep(FINALISE);
             return subFlow(new FinalityFlow(fullySignedTx, ImmutableSet.of(otherPartySession)));
@@ -101,10 +109,17 @@ public class ProductUpdateFlow {
                     ImmutableList.of(linearId),
                     Vault.StateStatus.UNCONSUMED,
                     null);
-
             List<StateAndRef<ProductState>> productStates = getServiceHub().getVaultService().queryBy(ProductState.class, queryCriteria).getStates();
             if (productStates.size() != 1) {
-                throw new FlowException(String.format("Product with id %s not found.", linearId));
+                System.out.println("##############################################");
+                System.out.println("##############################################");
+                System.out.println("##############################################");
+                System.out.println("##############################################");
+                System.out.println("##############################################");
+                System.out.println("##############################################");
+                System.out.println("##############################################");
+                System.out.println("##############################################");
+                throw new FlowException(String.format("@@@@@@@ - Product with id %s not found.", linearId));
             }
             return productStates.get(0);
         }
