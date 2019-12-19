@@ -19,7 +19,7 @@ import net.corda.core.utilities.ProgressTracker.Step;
 import net.corda.core.node.services.Vault;
 import net.corda.core.node.services.vault.QueryCriteria;
 import java.util.List;
-import java.util.UUID;
+
 
 import static net.corda.core.contracts.ContractsDSL.requireThat;
 
@@ -36,6 +36,7 @@ public class ProductUpdateFlow {
 
         private final Step GET_PRODUCT_FROM_VAULT = new Step("Obtaining product from vault.");
         private final Step CHECK_INITIATOR = new Step("Checking current product owner lender is initiating flow.");
+        private final Step VERIFYING_TRANSACTION = new Step("Verifying contract constraints.");
         private final Step BUILD_TRANSACTION = new Step("Building and verifying transaction.");
         private final Step SIGN_TRANSACTION = new Step("Signing transaction.");
         private final Step SYNC_OTHER_IDENTITIES = new Step("Making counterparties sync identities with each other.");
@@ -46,19 +47,10 @@ public class ProductUpdateFlow {
             }
         };
 
-        private final ProgressTracker progressTracker = new ProgressTracker(GET_PRODUCT_FROM_VAULT, CHECK_INITIATOR, BUILD_TRANSACTION, SIGN_TRANSACTION, FINALISE);
+        private final ProgressTracker progressTracker = new ProgressTracker(GET_PRODUCT_FROM_VAULT, CHECK_INITIATOR, BUILD_TRANSACTION, VERIFYING_TRANSACTION, SIGN_TRANSACTION, FINALISE);
 
         public Initiator(String inputExternalId, Party from, Party otherParty, String status) {
             this.linearId = UniqueIdentifier.Companion.fromString(inputExternalId);
-            System.out.println("##############################################");
-            System.out.println("##############################################");
-            System.out.println("##############################################");
-            System.out.println("##############################################");
-            System.out.println("linearId: "+linearId);
-            System.out.println("##############################################");
-            System.out.println("##############################################");
-            System.out.println("##############################################");
-            System.out.println("##############################################");
             this.otherParty = otherParty;
             this.status = status;
             this.from = from;
@@ -73,7 +65,6 @@ public class ProductUpdateFlow {
         @Override
         public SignedTransaction call() throws FlowException {
             final Party notary = getServiceHub().getNetworkMapCache().getNotaryIdentities().get(0);
-            // Stage 1. Retrieve obligation with the correct linear ID from the vault.
             progressTracker.setCurrentStep(GET_PRODUCT_FROM_VAULT);
             final StateAndRef<ProductState> productFromVault = getProductStateByLinearId(linearId);
             final ProductState productToMarkAsConsumed = productFromVault.getState().getData();
@@ -89,16 +80,14 @@ public class ProductUpdateFlow {
                     .addOutputState(newInputProduct, ProductContract.PRODUCT_CONTRACT_ID)
                     .addCommand(txCommand);
 
-            // Stage 6. Sign the transaction using the key we originally used.
+            progressTracker.setCurrentStep(VERIFYING_TRANSACTION);
+            txBuilder.verify(getServiceHub());
+
             progressTracker.setCurrentStep(SIGN_TRANSACTION);
             final SignedTransaction partSignedTx = getServiceHub().signInitialTransaction(txBuilder, newInputProduct.getFrom().getOwningKey());
-            // Stage 4.
-//            progressTracker.setCurrentStep(COLLECT_SIGNS);
-            // Send the state to the counterparty, and receive it back with their signature.
             FlowSession otherPartySession = initiateFlow(otherParty);
             final SignedTransaction fullySignedTx = subFlow(
                     new CollectSignaturesFlow(partSignedTx, ImmutableSet.of(otherPartySession), CollectSignaturesFlow.Companion.tracker()));
-           // Stage 10. Notarise and record the transaction in our vaults.
             progressTracker.setCurrentStep(FINALISE);
             return subFlow(new FinalityFlow(fullySignedTx, ImmutableSet.of(otherPartySession)));
         }
@@ -111,15 +100,7 @@ public class ProductUpdateFlow {
                     null);
             List<StateAndRef<ProductState>> productStates = getServiceHub().getVaultService().queryBy(ProductState.class, queryCriteria).getStates();
             if (productStates.size() != 1) {
-                System.out.println("##############################################");
-                System.out.println("##############################################");
-                System.out.println("##############################################");
-                System.out.println("##############################################");
-                System.out.println("##############################################");
-                System.out.println("##############################################");
-                System.out.println("##############################################");
-                System.out.println("##############################################");
-                throw new FlowException(String.format("@@@@@@@ - Product with id %s not found.", linearId));
+                throw new FlowException(String.format("Product with id %s not found.", linearId));
             }
             return productStates.get(0);
         }

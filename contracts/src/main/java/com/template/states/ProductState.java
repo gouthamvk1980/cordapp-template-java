@@ -53,6 +53,7 @@ public class ProductState implements LinearState {
         this.linearId = linearId;
     }
 
+
     @Override
     public List<AbstractParty> getParticipants() {
         return ImmutableList.of(from, to);

@@ -1,12 +1,11 @@
-start ProductCreateFlow otherParty: "O=PartyB,L=New York,C=US", productName: "Gadgets", productColor: "Green", status: "Pending"
-
-start ProductUpdateFlow inputExternalId: "86b6240d-d42c-4a5e-8690-10ba45075592", from: "O=PartyB,L=New York,C=US", otherParty: "O=PartyA,L=London,C=GB", status: "Received"
-
+Run the below query to ensure there are no states present
 run vaultQuery contractStateType: com.template.states.ProductState
 
+From Party A, run the below query
+start ProductCreateFlow otherParty: "O=PartyB,L=New York,C=US", productName: "Gadgets", productColor: "Green", status: "Pending"
+Run the next query to copy the linearId from vault. Also verify that status field has value "Pending"
+run vaultQuery contractStateType: com.template.states.ProductState
 
-Flow completed with result: SignedTransaction(id=C8D1655BE9B19A7B7F63A8A6E179F33
-715D5200865403093B146D6A76077C408)
-
-start ProductUpdateFlow inputExternalId: "C8D1655BE9B19A7B7F63A8A6E179F33
-715D5200865403093B146D6A76077C408", from: "O=PartyB,L=New York,C=US", otherParty: "O=PartyA,L=London,C=GB", status: "Received"
+From Party B, run the below query by replacing the ID as a String as highlighted below
+start ProductUpdateFlow inputExternalId: "PASTE_ID_HERE.IT_IS_A_STRING_INPUT", from: "O=PartyB,L=New York,C=US", otherParty: "O=PartyA,L=London,C=GB", status: "Received"
+Run the below query to verify that status field value has changed to "Received"

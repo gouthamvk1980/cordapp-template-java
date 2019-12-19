@@ -46,7 +46,7 @@ public class ProductContract implements Contract {
                 .collect(toSet());
     }
 
-    // This only allows one obligation issuance per transaction.
+
     private void verifyCreate(LedgerTransaction tx, Set<PublicKey> signers) {
         requireThat(req -> {
             req.using("No inputs should be consumed when creating a product.",
@@ -62,21 +62,22 @@ public class ProductContract implements Contract {
         });
     }
 
-    // This only allows one obligation transfer per transaction.
+    
     private void verifyUpdateStatus(LedgerTransaction tx, Set<PublicKey> signers) {
-        requireThat(req -> {
-            req.using("A product update transaction should at least consume one input state.", tx.getInputs().size() == 0);
-            req.using("A product update transaction should only consume one input state.", tx.getInputs().size() == 1);
-            req.using("A product update transaction should only create one output state.", tx.getOutputs().size() == 1);
             ProductState inputProductState = tx.inputsOfType(ProductState.class).get(0);
             ProductState outputProductState = tx.outputsOfType(ProductState.class).get(0);
-            req.using("The Product state must change in an update transaction.", !inputProductState.getStatus().equals(outputProductState.getStatus()));
-            req.using("The Product state must change to  Received after update transaction.", "Received".equals(outputProductState.getStatus()));
-            req.using("Name of the product after update must remain Gadgets", "Gadgets".equals(outputProductState.getProductColor()));
-            req.using("Both sender and receiver company should sign product update status transaction.",
-                    signers.equals(keysFromParticipants(outputProductState)));
-            return null;
-        });
+        // Constraints on the shape of the transaction.
+        if (tx.getInputs().isEmpty())
+            throw new IllegalArgumentException("A product update transaction should consume one input state ---------> tx.getInputs().isEmpty() ");
+        if (tx.getInputs().size() > 1)
+            throw new IllegalArgumentException("A product update transaction should consume ONLY one input state -----------> tx.getInputs().size() > 1");
+        if (tx.getOutputs().size() > 1)
+            throw new IllegalArgumentException("A product update transaction should create ONLY one output state ------------> tx.getOutputs().size() > 1");
+        if (!("Received".equals(outputProductState.getStatus())))
+            throw new IllegalArgumentException("The Product state must change to  RECEIVED after update transaction ---------------> 'Received'.equals(outputProductState.getStatus())");
+        if(!(signers.equals(keysFromParticipants(outputProductState))))
+            throw new IllegalArgumentException("Both the parties (from and to) should sign the update product transaction -------------------> signers.equals(keysFromParticipants(outputProductState))");
+
     }
 
 }
