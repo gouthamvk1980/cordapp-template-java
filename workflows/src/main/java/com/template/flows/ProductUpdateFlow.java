@@ -69,6 +69,9 @@ public class ProductUpdateFlow {
             progressTracker.setCurrentStep(GET_PRODUCT_FROM_VAULT);
             final StateAndRef<ProductState> productFromVault = getProductStateByLinearId(linearId);
             final ProductState productToMarkAsConsumed = productFromVault.getState().getData();
+            if(!"Pending".equals(productToMarkAsConsumed.getStatus())) {
+                throw new FlowException(String.format("Product status in the vault is not Pending. Which suggests Product might have already been processed. Please check"));
+            }
             final ProductState newInputProduct = new ProductState(from, otherParty, productToMarkAsConsumed.getProductName(), productToMarkAsConsumed.getProductColor(), status, linearId);
 
             final Party from = (Party) newInputProduct.getFrom();

@@ -62,10 +62,10 @@ public class ProductContract implements Contract {
         });
     }
 
-    
+
     private void verifyUpdateStatus(LedgerTransaction tx, Set<PublicKey> signers) {
-            ProductState inputProductState = tx.inputsOfType(ProductState.class).get(0);
-            ProductState outputProductState = tx.outputsOfType(ProductState.class).get(0);
+        ProductState inputProductState = tx.inputsOfType(ProductState.class).get(0);
+        ProductState outputProductState = tx.outputsOfType(ProductState.class).get(0);
         // Constraints on the shape of the transaction.
         if (tx.getInputs().isEmpty())
             throw new IllegalArgumentException("A product update transaction should consume one input state ---------> tx.getInputs().isEmpty() ");
