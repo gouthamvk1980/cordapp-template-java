@@ -9,3 +9,8 @@ run vaultQuery contractStateType: com.template.states.ProductState
 From Party B, run the below query by replacing the ID as a String as highlighted below
 start ProductUpdateFlow inputExternalId: "PASTE_ID_HERE.IT_IS_A_STRING_INPUT", from: "O=PartyB,L=Seattle,C=US", otherParty: "O=PartyA,L=London,C=GB", status: "Received"
 Run the below query to verify that status field value has changed to "Received"
+
+
+start ProductUpdateFlow from: "O=PartyB,L=Seattle,C=US", otherParty: "O=PartyA,L=London,C=GB", status: "Received"
+
+start ProductCreateFlow otherParty: "O=PartyB,L=Seattle,C=US", productName: "Gadgets", productColor: "Green", status: "Pending"

@@ -29,7 +29,7 @@ public class ProductUpdateFlow {
     @StartableByRPC
     @InitiatingFlow
     public static class Initiator extends FlowLogic<SignedTransaction> {
-        private final UniqueIdentifier linearId;
+//        private final UniqueIdentifier linearId;
         private final Party otherParty;
         private final Party from;
         private final String status;
@@ -50,8 +50,9 @@ public class ProductUpdateFlow {
 
         private final ProgressTracker progressTracker = new ProgressTracker(GET_PRODUCT_FROM_VAULT, CHECK_INITIATOR, BUILD_TRANSACTION, VERIFYING_TRANSACTION, SIGN_TRANSACTION, FINALISE);
 
-        public Initiator(String inputExternalId, Party from, Party otherParty, String status) {
-            this.linearId = UniqueIdentifier.Companion.fromString(inputExternalId);
+//        public Initiator(String inputExternalId, Party from, Party otherParty, String status) {
+        public Initiator(Party from, Party otherParty, String status) {
+//            this.linearId = UniqueIdentifier.Companion.fromString(inputExternalId);
             this.otherParty = otherParty;
             this.status = status;
             this.from = from;
@@ -67,13 +68,15 @@ public class ProductUpdateFlow {
         public SignedTransaction call() throws FlowException {
             final Party notary = getServiceHub().getNetworkMapCache().getNotaryIdentities().get(0);
             progressTracker.setCurrentStep(GET_PRODUCT_FROM_VAULT);
-            final StateAndRef<ProductState> productFromVault = getProductStateByLinearId(linearId);
+//            final StateAndRef<ProductState> productFromVault = getProductStateByLinearId(linearId);
+            final StateAndRef<ProductState> productFromVault = getUnconsumedProductStateFromVault();
             final ProductState productToMarkAsConsumed = productFromVault.getState().getData();
-            if(!"Pending".equals(productToMarkAsConsumed.getStatus())) {
-                throw new FlowException(String.format("Product status in the vault is not Pending. Which suggests Product might have already been processed. Please check"));
-            }
-            final ProductState newInputProduct = new ProductState(from, otherParty, productToMarkAsConsumed.getProductName(), productToMarkAsConsumed.getProductColor(), status, linearId);
-
+//            final ProductState productToMarkAsConsumed = getUnconsumedProductStateFromVault();
+//            if(!"Pending".equals(productToMarkAsConsumed.getStatus())) {
+//                throw new FlowException(String.format("Product status in the vault is not Pending. Which suggests Product might have already been processed. Please check"));
+//            }
+//            final ProductState newInputProduct = new ProductState(from, otherParty, productToMarkAsConsumed.getProductName(), productToMarkAsConsumed.getProductColor(), status, linearId);
+            final ProductState newInputProduct = new ProductState(from, otherParty, productToMarkAsConsumed.getProductName(), productToMarkAsConsumed.getProductColor(), status, productToMarkAsConsumed.getLinearId());
             final Party from = (Party) newInputProduct.getFrom();
 
             final Command<ProductContract.Commands.UpdateStatus> txCommand = new Command<>(
@@ -96,15 +99,38 @@ public class ProductUpdateFlow {
             return subFlow(new FinalityFlow(fullySignedTx, ImmutableSet.of(otherPartySession)));
         }
 
+
+        private StateAndRef<ProductState> getUnconsumedProductStateFromVault() throws FlowException {
+            QueryCriteria queryCriteria =
+                    new QueryCriteria.LinearStateQueryCriteria(null,null,Vault.StateStatus.UNCONSUMED,null);
+
+            List<StateAndRef<ProductState>> productStates = getServiceHub().getVaultService().queryBy(ProductState.class, queryCriteria).getStates();
+            ProductState productStateToUpdate = null;
+            boolean productAvailableForUpdate = false;
+            for (int i = 0; i < productStates.size(); i++) {
+                productStateToUpdate = (ProductState) productStates.get(i).getState().getData();
+                if("Pending".equals(productStates.get(i).getState().getData().getStatus())) {
+                    productAvailableForUpdate = true;
+                    return productStates.get(i);
+                }
+            }
+            if (!productAvailableForUpdate) {
+                throw new FlowException(String.format("Product State with UNCONSUMED status does not exist"));
+            }
+            return null;
+        }
+
         StateAndRef<ProductState> getProductStateByLinearId(UniqueIdentifier linearId) throws FlowException {
             QueryCriteria queryCriteria = new QueryCriteria.LinearStateQueryCriteria(
                     null,
                     ImmutableList.of(linearId),
                     Vault.StateStatus.UNCONSUMED,
                     null);
+
             List<StateAndRef<ProductState>> productStates = getServiceHub().getVaultService().queryBy(ProductState.class, queryCriteria).getStates();
             if (productStates.size() != 1) {
-                throw new FlowException(String.format("Product with id %s not found.", linearId));
+//                    Removing this code to get all states by state of UNCONSUMED
+                                throw new FlowException(String.format("Product with id %s not found.", linearId));
             }
             return productStates.get(0);
         }
