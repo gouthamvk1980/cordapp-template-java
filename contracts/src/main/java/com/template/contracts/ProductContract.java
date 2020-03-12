@@ -75,6 +75,8 @@ public class ProductContract implements Contract {
             throw new IllegalArgumentException("A product update transaction should create ONLY one output state ------------> tx.getOutputs().size() > 1");
         if (!("Received".equals(outputProductState.getStatus())))
             throw new IllegalArgumentException("The Product state must change to  RECEIVED after update transaction ---------------> 'Received'.equals(outputProductState.getStatus())");
+        if (!("Red".equals(outputProductState.getProductColor()) || "Green".equals(outputProductState.getProductColor())))
+            throw new IllegalArgumentException("The Product color must either be Red or Green  ---------------> 'Red'.equals(outputProductState.getStatus())");
         if(!(signers.equals(keysFromParticipants(outputProductState))))
             throw new IllegalArgumentException("Both the parties (from and to) should sign the update product transaction -------------------> signers.equals(keysFromParticipants(outputProductState))");
 

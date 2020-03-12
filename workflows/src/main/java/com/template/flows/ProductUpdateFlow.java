@@ -33,6 +33,8 @@ public class ProductUpdateFlow {
         private final Party otherParty;
         private final Party from;
         private final String status;
+        private final String color;
+        private final String PENDING_STATUS = "Pending";
 
 
         private final Step GET_PRODUCT_FROM_VAULT = new Step("Obtaining product from vault.");
@@ -51,11 +53,12 @@ public class ProductUpdateFlow {
         private final ProgressTracker progressTracker = new ProgressTracker(GET_PRODUCT_FROM_VAULT, CHECK_INITIATOR, BUILD_TRANSACTION, VERIFYING_TRANSACTION, SIGN_TRANSACTION, FINALISE);
 
 //        public Initiator(String inputExternalId, Party from, Party otherParty, String status) {
-        public Initiator(Party from, Party otherParty, String status) {
+        public Initiator(Party from, Party otherParty, String status, String color) {
 //            this.linearId = UniqueIdentifier.Companion.fromString(inputExternalId);
             this.otherParty = otherParty;
             this.status = status;
             this.from = from;
+            this.color = color;
         }
 
         @Override
@@ -69,7 +72,7 @@ public class ProductUpdateFlow {
             final Party notary = getServiceHub().getNetworkMapCache().getNotaryIdentities().get(0);
             progressTracker.setCurrentStep(GET_PRODUCT_FROM_VAULT);
 //            final StateAndRef<ProductState> productFromVault = getProductStateByLinearId(linearId);
-            final StateAndRef<ProductState> productFromVault = getUnconsumedProductStateFromVault();
+            final StateAndRef<ProductState> productFromVault = getUnconsumedProductStateFromVault(color);
             final ProductState productToMarkAsConsumed = productFromVault.getState().getData();
 //            final ProductState productToMarkAsConsumed = getUnconsumedProductStateFromVault();
 //            if(!"Pending".equals(productToMarkAsConsumed.getStatus())) {
@@ -100,24 +103,35 @@ public class ProductUpdateFlow {
         }
 
 
-        private StateAndRef<ProductState> getUnconsumedProductStateFromVault() throws FlowException {
-            QueryCriteria queryCriteria =
-                    new QueryCriteria.LinearStateQueryCriteria(null,null,Vault.StateStatus.UNCONSUMED,null);
+        private StateAndRef<ProductState> getUnconsumedProductStateFromVault(String color) throws FlowException {
+//            QueryCriteria queryCriteria =
+//                    new QueryCriteria.LinearStateQueryCriteria(null,null,Vault.StateStatus.UNCONSUMED,null);
 
-            List<StateAndRef<ProductState>> productStates = getServiceHub().getVaultService().queryBy(ProductState.class, queryCriteria).getStates();
-            ProductState productStateToUpdate = null;
-            boolean productAvailableForUpdate = false;
-            for (int i = 0; i < productStates.size(); i++) {
-                productStateToUpdate = (ProductState) productStates.get(i).getState().getData();
-                if("Pending".equals(productStates.get(i).getState().getData().getStatus())) {
-                    productAvailableForUpdate = true;
-                    return productStates.get(i);
-                }
-            }
-            if (!productAvailableForUpdate) {
-                throw new FlowException(String.format("Product State with UNCONSUMED status does not exist"));
-            }
-            return null;
+//            List<StateAndRef<ProductState>> productStates = getServiceHub().getVaultService().queryBy(ProductState.class, queryCriteria).getStates();
+
+            StateAndRef<ProductState> fromVaultStateAndRef = getServiceHub().getVaultService().
+                    queryBy(ProductState.class).getStates().stream()
+                    .filter(productState -> productState.getState().getData().getStatus().equals(PENDING_STATUS))
+                    .filter(productState -> productState.getState().getData().getProductColor().equals(color)).findAny()
+                    .orElseThrow(() -> new IllegalArgumentException("Product State with Pending status && "+color+" does not exist in vault"));
+
+
+//            boolean productAvailableForUpdate = false;
+//                if(null == productStates) {
+//                    throw new FlowException(String.format("Product State with UNCONSUMED status does not exist"));
+//                }else{
+//                for (int i = 0; i < productStates.size(); i++) {
+//                    if ("Pending".equals(productStates.get(i).getState().getData().getStatus())) {
+//                        productAvailableForUpdate = true;
+//                        return productStates.get(i);
+//                    }
+//                }
+//                if (!productAvailableForUpdate) {
+//                    throw new FlowException(String.format("Product States with UNCONSUMED && Pending status do not exist"));
+//                }
+//            }
+            // This line is not reached but retained to satisfy return statement
+            return fromVaultStateAndRef;
         }
 
         StateAndRef<ProductState> getProductStateByLinearId(UniqueIdentifier linearId) throws FlowException {
